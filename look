@@ -1,109 +1,108 @@
-function test() 
- fig = uifigure('Name', 'File Selection UI', 'Position', [100, 100, 900, 500]); 
- btn = uibutton(fig, 'Text', 'Select File', 'Position', [150, 350, 100, 40]); 
- fileLabel = uilabel(fig, 'Text', 'Selected File', 'Position', [50, 300, 300, 40]); 
- filePathField = uitextarea(fig, 'Position', [50, 250, 300, 30], 'Editable', 'off'); % The text area for the file 
-name 
- submitBtn = uibutton(fig, 'Text', 'Submit', 'Position', [400, 20, 100, 40]); 
- scrollpanel = uipanel(fig, 'Title', 'Select Signal Nos:', 'position',[530,150,300,220],'Scrollable','on'); 
- ax = uiaxes(fig,'Position', [50, 50, 400, 200],'Title', 'Noise Levels','XLabel', 'Frequency (kHz)','YLabel', 
-'Noise (dB)'); 
- checkbox = gobjects(52,1); 
- spacing=18; 
- for i=1:52 
- checkbox(i)=uicheckbox(scrollpanel,'Text',sprintf('%d',i),'position',[10,950 - i * spacing,200,20]); 
- end 
- selectall=uibutton(fig,'Text','Selectall','position',[580,90,100,30],'ButtonPushedFcn',@(src,event)togglec
-heckbox(true)); 
- deselectall=uibutton(fig,'Text','De-
-selectall','position',[720,90,100,30],'ButtonPushedFcn',@(src,event)togglecheckbox(false)); 
- function togglecheckbox(state) 
- for i=1:52 
- checkbox(i).Value=state; 
- end 
- end 
- persistent selectedFilePath 
- btn.ButtonPushedFcn = @(btn, event) selectFileCallback(); 
- submitBtn.ButtonPushedFcn = @(btn, event) submitCallback(); 
- function selectFileCallback() 
- [file, path] = uigetfile('*.m', 'Select a MATLAB file'); % Only allow .m files 
- if file ~= 0 
- fileName = file; 
- selectedFilePath = fullfile(path,fileName); 
- filePathField.Value = fileName; 
- else 
- filePathField.Value = 'No file selected'; 
- selectedFilePath = ''; 
- end
-end 
- 
- function submitCallback() 
- fileName = filePathField.Value; 
- if isempty(fileName) || strcmp(fileName, 'No file selected') 
- uialert(fig, 'Please select a file before submitting.', 'Error', 'Icon', 'error'); 
- return; 
- end 
- if isempty(selectedFilePath) || exist(selectedFilePath,'file')~=-2 
- uialert(fig, 'File not found', 'Error', 'Icon', 'error'); 
- return; 
- end 
- selectedIndex=[]; 
- for i=1:52 
- if checkbox(i).Value 
- selectedIndex(end +1)=i; 
- end 
- end 
- 
- [Sig,Data] = PassiveDDR_read(selectedFilePath, 0.2, 0); 
- Fs = 666e3; 
- NumChannels = 52; 
- Bandwidth = 2000; 
- RS = -184.6; 
- FE_GainIndB = 58.5; 
- FE_Gain = 10^(FE_GainIndB/20); 
- plot(ReshapedData(:,5)); 
- ReshapedData = reshape(Data',NumChannels,numel(Data)/NumChannels); 
- ReshapedData=ReshapedData'; 
- plot(ReshapedData(:,1)); 
- NLO =[]; 
- m1=[selectedIndex] 
- for m=m1 
- [Pxx,f]=pwelch(ReshapedData(:,m),ones(NFFT,1),NFFT/2,NFFT,Fs); 
- NLO(:,m) = 10*log10(Pxx) - FE_GainIndB -RS; 
- end 
- NLbw = 10*log10(sum(Pxx)) +10*log10(Fs/NFFT) -FE_GainIndB -RS; 
- NLWL = 10*log10(var(ReshapedData)) -FE_GainIndB -RS;
+function test()
 
-figure(1); 
- plot(f/1000,NLO(:,m1(2)),'r.-');grid on; 
- legend('Acoustic Noise Level'); hold on, 
- plot(f/1000,NL0,'r.-');grid on; 
- hold off 
- legend('Noise Across Channel','Beam Noise Level'); 
- %% Beam Noise Level 
- beam0 = mean(ReshapedData,2); 
- [PxxBeam,f]=pwelch(beam0,ones(NFFT,1),NFFT/2,NFFT,Fs); 
- BNL0 = 10*log10(PxxBeam) -FE_GainIndB -RS; 
- BNLw = 10*log10(sum(PxxBeam)) +10*log10(fs/NFFT) -FE_GainIndB -RS; 
- figure(1); 
- plot(f/1000,BNL0);grid on; 
- legend('Beam Noise Level'); 
- title('Noise Level(NLO) and Beam Noise Level'); 
- hold off; 
- cla(ax); % Clear previous content 
- hold(ax, 'on'); % Allow multiple plots 
- % Plot NLO (one selected channel from selectedIndex) 
- if length(m1) >= 1 
- plot(ax, f/1000, NLO(:, m1(1)), 'r.-', 'DisplayName', 'Selected Channel'); 
- end 
- % Plot BNL0 (Beam Noise) 
- plot(ax, f/1000, BNL0, 'b.-', 'DisplayName', 'Beam Noise Level'); 
- % Finish UI plot 
- title(ax, 'Noise Level (NLO) and Beam Noise Level'); 
- xlabel(ax, 'Frequency (kHz)'); 
- ylabel(ax, 'Noise (dB)'); 
- legend(ax, 'Location', 'best'); 
- grid(ax, 'on'); 
- hold(ax, 'off'); 
- end 
-end
+    fig = uifigure('Name', 'File Selection UI', 'Position', [100, 100, 900, 500]);
+    btn = uibutton(fig, 'Text', 'Select File', 'Position', [150, 350, 100, 40]);
+    fileLabel = uilabel(fig, 'Text', 'Selected File', 'Position', [50, 300, 300, 40]);
+    filePathField = uitextarea(fig, 'Position', [50, 250, 300, 30], 'Editable', 'off');  % The text area for the file name
+    submitBtn = uibutton(fig, 'Text', 'Submit', 'Position', [470, 50, 100, 40]);
+    scrollpanel = uipanel(fig, 'Title', 'Select Signal Nos:', 'position',[530,150,300,220],'Scrollable','on');
+    ax = uiaxes(fig,'Position', [50, 50, 340, 200],'Title', 'Noise Levels','XLabel', 'Frequency (kHz)','YLabel', 'Noise (dB)');
+
+    checkbox = gobjects(52,1);
+    spacing=18;
+
+    for i=1:52
+        checkbox(i)=uicheckbox(scrollpanel,'Text',sprintf('%d',i),'position',[10,950 - i * spacing,200,20]);
+    end
+
+    selectall=uibutton(fig,'Text','Selectall','position',[580,90,100,30],'ButtonPushedFcn',@(src,event)togglecheckbox(true));
+    deselectall=uibutton(fig,'Text','De-selectall','position',[720,90,100,30],'ButtonPushedFcn',@(src,event)togglecheckbox(false));
+
+    function togglecheckbox(state)
+        for i=1:52
+            checkbox(i).Value=state;
+        end
+    end
+
+    persistent selectedFilePath
+    btn.ButtonPushedFcn = @(btn, event) selectFileCallback();
+    submitBtn.ButtonPushedFcn = @(btn, event) submitCallback();
+
+    function selectFileCallback()
+        [file, path] = uigetfile('*.m', 'Select a MATLAB file');  % Only allow .m files
+        if file ~= 0
+            fileName = file;
+            selectedFilePath = fullfile(path,fileName);
+            filePathField.Value = fileName;
+        else
+            filePathField.Value = 'No file selected';
+            selectedFilePath = '';
+        end
+    end
+
+        
+    function submitCallback()
+        fileName = filePathField.Value;
+        if isempty(fileName) || strcmp(fileName, 'No file selected')
+            uialert(fig, 'Please select a file before submitting.', 'Error', 'Icon', 'error');
+            return;
+        end
+
+        if isempty(selectedFilePath) || exist(selectedFilePath, 'file') ~= 2
+            uialert(fig, 'File not found', 'Error', 'Icon', 'error');
+            return;
+        end
+
+        selectedIndex = find(arrayfun(@(c) c.Value, checkbox));
+
+        if isempty(selectedIndex)
+            uialert(fig, 'Please select at least one signal.', 'Warning', 'Icon', 'warning');
+            return;
+        end
+        
+        [Sig,Data] = PassiveDDR_read(selectedFilePath, 0.2, 0);
+        Fs = 66e3;
+        NumChannels = 52;
+        Bandwidth = 2000;  
+        RS = -184.6;  
+        FE_GainIndB = 58.5;
+        FE_Gain = 10^(FE_GainIndB/20);   
+        f1=9e3;
+        f2=24e3;
+        NFFT=2048
+    
+        ReshapedData = reshape(Data',NumChannels,numel(Data)/NumChannels);
+        ReshapedData=ReshapedData';
+        %plot(ReshapedData(:,1));
+        NLO =[];
+
+
+        for m=selectedIndex
+            [Pxx,f]=pwelch(ReshapedData(:,m),ones(NFFT,1),NFFT/2,NFFT,Fs);
+            NLO(:,m) = 10*log10(Pxx) - FE_GainIndB -RS;
+        end
+
+        beamO = mean(ReshapedData,2);
+        [PxxBeam,f]=pwelch(beamO,ones(NFFT,1),NFFT/2,NFFT,Fs);
+        BNLO = 10*log10(PxxBeam) -FE_GainIndB -RS;
+        
+        cla(ax);  % Clear previous plot
+        hold(ax, 'on');
+        if length(selectedIndex) >= 1
+        plot(ax, f/1000, NLO(:, selectedIndex(1)), '-r');
+        end
+        % Plot all selected channels in blue
+        plot(ax, f/1000, NLO(:, selectedIndex), '-b');
+
+        % Plot beam noise in green
+        plot(ax, f/1000, BNLO, '-g');
+
+        legend(ax, {'First Selected NLO', 'All NLO', 'Beam Noise'}, 'Location', 'northeast');
+        ax.Title.String = 'Noise Level (NLO) and Beam Noise Level';
+        ax.XLabel.String = 'Frequency (kHz)';
+        ax.YLabel.String = 'Noise (dB)';
+        grid(ax, 'on');
+        hold(ax, 'off');
+    end
+
+end      

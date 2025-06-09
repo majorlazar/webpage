@@ -4,9 +4,9 @@ function test()
     btn = uibutton(fig, 'Text', 'Select File', 'Position', [150, 350, 100, 40]);
     fileLabel = uilabel(fig, 'Text', 'Selected File', 'Position', [50, 300, 300, 40]);
     filePathField = uitextarea(fig, 'Position', [50, 250, 300, 30], 'Editable', 'off');  % The text area for the file name
-    submitBtn = uibutton(fig, 'Text', 'Submit', 'Position', [470, 50, 100, 40]);
+    submitBtn = uibutton(fig, 'Text', 'Submit', 'Position', [400, 20, 100, 40]);
     scrollpanel = uipanel(fig, 'Title', 'Select Signal Nos:', 'position',[530,150,300,220],'Scrollable','on');
-    ax = uiaxes(fig,'Position', [50, 50, 340, 200],'Title', 'Noise Levels','XLabel', 'Frequency (kHz)','YLabel', 'Noise (dB)');
+    ax = uiaxes(fig,'Position', [50, 50, 400, 200],'Title', 'Noise Levels','XLabel', 'Frequency (kHz)','YLabel', 'Noise (dB)');
 
     checkbox = gobjects(52,1);
     spacing=18;
@@ -29,7 +29,7 @@ function test()
     submitBtn.ButtonPushedFcn = @(btn, event) submitCallback();
 
     function selectFileCallback()
-        [file, path] = uigetfile('*.m', 'Select a MATLAB file');  % Only allow .m files
+        [file, path] = uigetfile('*.gdr', 'Select a MATLAB file');  % Only allow .m files
         if file ~= 0
             fileName = file;
             selectedFilePath = fullfile(path,fileName);
@@ -42,13 +42,13 @@ function test()
 
         
     function submitCallback()
-        fileName = filePathField.Value;
+        fileName = filePathField.Value;  
         if isempty(fileName) || strcmp(fileName, 'No file selected')
             uialert(fig, 'Please select a file before submitting.', 'Error', 'Icon', 'error');
             return;
         end
 
-        if isempty(selectedFilePath) || exist(selectedFilePath, 'file') ~= 2
+        if isempty(selectedFilePath) || ~isfile(selectedFilePath)
             uialert(fig, 'File not found', 'Error', 'Icon', 'error');
             return;
         end
@@ -59,6 +59,7 @@ function test()
             uialert(fig, 'Please select at least one signal.', 'Warning', 'Icon', 'warning');
             return;
         end
+
         
         [Sig,Data] = PassiveDDR_read(selectedFilePath, 0.2, 0);
         Fs = 66e3;
@@ -76,33 +77,34 @@ function test()
         %plot(ReshapedData(:,1));
         NLO =[];
 
+        m1=[selectedIndex]
+        disp(m1)
 
-        for m=selectedIndex
+        for m=m1
             [Pxx,f]=pwelch(ReshapedData(:,m),ones(NFFT,1),NFFT/2,NFFT,Fs);
             NLO(:,m) = 10*log10(Pxx) - FE_GainIndB -RS;
         end
-
+        
         beamO = mean(ReshapedData,2);
         [PxxBeam,f]=pwelch(beamO,ones(NFFT,1),NFFT/2,NFFT,Fs);
         BNLO = 10*log10(PxxBeam) -FE_GainIndB -RS;
-        
         cla(ax);  % Clear previous plot
         hold(ax, 'on');
-        if length(selectedIndex) >= 1
-        plot(ax, f/1000, NLO(:, selectedIndex(1)), '-r');
-        end
-        % Plot all selected channels in blue
-        plot(ax, f/1000, NLO(:, selectedIndex), '-b');
+        % if length(selectedIndex) >= 1
+        % plot(ax, f/1000, NLO(:, selectedIndex(1)), '-r');
+        % end
+        % Plot all selected channels in red
+        plot(ax, f/1000, NLO(:, selectedIndex), '-r');
 
         % Plot beam noise in green
         plot(ax, f/1000, BNLO, '-g');
 
-        legend(ax, {'First Selected NLO', 'All NLO', 'Beam Noise'}, 'Location', 'northeast');
+        legend(ax, {'Selected channels NLO', 'Beam Noise'}, 'Location', 'northeast');
         ax.Title.String = 'Noise Level (NLO) and Beam Noise Level';
         ax.XLabel.String = 'Frequency (kHz)';
         ax.YLabel.String = 'Noise (dB)';
         grid(ax, 'on');
         hold(ax, 'off');
     end
+end     
 
-end      
